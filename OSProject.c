@@ -7,25 +7,58 @@
 #include <unistd.h>
 
 buffer_item buffer[BUFFER_SIZE];
+int bufferAdd = 0;
+int bufferRemove = 0;
 
 // ===== Insert Item Function =====
 int insert_item(buffer_item item) {
     
-    // insert item into buffer
-    // return status 0 if successful
-    // return status -1 if failed
+    int status = -1;
     
-    int status = 0;
+    // If buffer is not full add item to buffer
+    if (bufferAdd < BUFFER_SIZE) {
+        
+        // add item to buffer
+        buffer[bufferAdd] = item;
+        bufferAdd++;
+        status = 0;
+        
+    } else {
+        
+        // ERROR: Buffer if full, notify user
+        fprintf(stderr, "===== ERROR: Buffer Full ===== \n");
+        status = -1;
+        
+    }
+    
+    
     return status;
     
 }
 
 // ===== Remove Item Function =====
 int remove_item(buffer_item *item) {
-    // remove item from buffer
-    // return status 0 if successful
-    // return status -1 if failed
-    int status = 0;
+    
+    int status = -1;
+    
+    // if bufferRemove is in the buffers range then remove that item
+    if (bufferRemove < BUFFER_SIZE && bufferRemove >= 0) {
+        
+        // Place value from buffer into item
+        *item = buffer[bufferRemove];
+        
+        // Remove previous value and set it to 0 (act as deletion)
+        buffer[bufferRemove] = 0;
+        bufferRemove++;
+        status = 0;
+
+    } else {
+        
+        // ERROR: Buffer is full, notify user
+        fprintf(stderr, "===== ERROR: Buffer Full ===== \n");
+        status = -1;
+        
+    }
     return status;
 }
 
@@ -36,8 +69,10 @@ void *producer (void *arguments) {
     
     while (1) {
         
-        // Random sleepTime ... sleep
-        // Generate random number to produce
+        // Random sleepTime from 1 to 9
+        int sleepTime = rand() % 10;
+        sleep(sleepTime);
+        
         item = rand();
         if (insert_item(item)) {
             fprintf(stderr, "ERROR\n");
@@ -57,7 +92,10 @@ void *consumer (void *arguments) {
     
     while (1) {
         
-        // Random sleepTime ... sleep
+        // Random sleepTime from 1 to 9
+        int sleepTime = rand() % 10;
+        sleep(sleepTime);
+        
         if(remove_item(&item))
             fprintf(stderr, "ERROR\n");
         else {
