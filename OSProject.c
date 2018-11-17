@@ -120,7 +120,18 @@ void *consumer (void *arguments) {
 
 
 int main(int argc, const char * argv[]) {
-   
+    
+    // ===== Initializing Unnamed Semaphore =====
+    pthread_mutex_init(&mutex, NULL);
+    sem_init(&full, 0, 0);
+    sem_init(&empty, 0, BUFFER_SIZE);
+    
+    // Error Control: If users don't enter valid number of arguments prompt user
+    if (argc != 4) {
+        fprintf(stderr, "ERROR: usage --> %s sleepTime #Producers #Consumers\n", argv[0]);
+        exit(1);
+    }
+    
     // Capturing Command Line Arguments
     int sleepTime = atoi(argv[1]);
     int numProducer = atoi(argv[2]);
@@ -130,9 +141,14 @@ int main(int argc, const char * argv[]) {
     pthread_t producerThread;
     pthread_t consumerThread;
     
-    pthread_create(&producerThread, NULL, producer, NULL);
-    pthread_create(&consumerThread, NULL, consumer, NULL);
+    for (int i = 0; i < numProducer; i++) {
+        pthread_create(&producerThread, NULL, producer, NULL);
+    }
     
+    for (int i = 0; i < numConsumer; i++) {
+        pthread_create(&consumerThread, NULL, consumer, NULL);
+    }
+
     // Sleep for certain amount of time specified by user then exit
     sleep(sleepTime);
     exit(0);
