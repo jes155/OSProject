@@ -1,3 +1,16 @@
+/*
+SYST44288 Operating Systems Design & Systems Programming
+Term Project
+Consumer-Producer solution implementing semaphores and mutex on buffer
+
+Group Members:
+Justin Crozier
+Elie Nsair
+Sean Ramsay
+
+Date: Nov 17 2018
+*/
+
 // ===== OS Project ===== //
 
 #include <stdio.h>
