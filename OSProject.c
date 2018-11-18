@@ -23,28 +23,45 @@ buffer_item buffer[BUFFER_SIZE];
 int bufferAdd = 0;
 int bufferRemove = 0;
 
+// ===== Creating Mutex for Locking & Semaphore Variables =====
+pthread_mutex_t mutex;
+sem_t full, empty;
+
 // ===== Insert Item Function =====
 int insert_item(buffer_item item) {
     
     int status = -1;
-    
+
     // If buffer is not full add item to buffer
     if (bufferAdd < BUFFER_SIZE) {
         
+        // Lock before accessing C.S.
+        pthread_mutex_lock(&mutex);
+        // Decrement the empty semaphore
+        sem_wait(&empty);
+        
         // add item to buffer
         buffer[bufferAdd] = item;
+        
+        // create circular array behaviour (loops 0, 1, 2, 3, 4, 0...)
         bufferAdd++;
+        bufferAdd = bufferAdd % BUFFER_SIZE;
+        
         status = 0;
+        
+        // Unlock after accessing C.S.
+        pthread_mutex_unlock(&mutex);
+        // Increment the full semaphore
+        sem_post(&full);
         
     } else {
         
-        // ERROR: Buffer if full, notify user
+        // ERROR: Buffer is full, notify user
         fprintf(stderr, "===== ERROR: Buffer Full ===== \n");
         status = -1;
         
     }
-    
-    
+
     return status;
     
 }
@@ -53,18 +70,32 @@ int insert_item(buffer_item item) {
 int remove_item(buffer_item *item) {
     
     int status = -1;
-    
+
     // if bufferRemove is in the buffers range then remove that item
     if (bufferRemove < BUFFER_SIZE && bufferRemove >= 0) {
         
-        // Place value from buffer into item
+        // Lock before entering C.S.
+        pthread_mutex_lock(&mutex);
+        // Decrement the full semaphore
+        sem_wait(&full);
+        
+        // Place consumed value from buffer into item
         *item = buffer[bufferRemove];
         
         // Remove previous value and set it to 0 (act as deletion)
         buffer[bufferRemove] = 0;
+        
+        // Circular buffer behaviour
         bufferRemove++;
+        bufferRemove = bufferRemove % BUFFER_SIZE;
+        
         status = 0;
-
+        
+        // Unlock after accessing C.S.
+        pthread_mutex_unlock(&mutex);
+        // Increment the empty semaphore
+        sem_post(&empty);
+        
     } else {
         
         // ERROR: Buffer is full, notify user
@@ -72,6 +103,7 @@ int remove_item(buffer_item *item) {
         status = -1;
         
     }
+    
     return status;
 }
 
@@ -82,13 +114,16 @@ void *producer (void *arguments) {
     
     while (1) {
         
-        // Random sleepTime from 1 to 9
-        int sleepTime = rand() % 10;
+        // Random sleepTime from 1 to (BUFFER_SIZE - 1)
+        int sleepTime = (rand() % BUFFER_SIZE - 1) + 1;
         sleep(sleepTime);
         
+        // Generate random number to produce
         item = rand();
+        
+        // Try to insert random number into buffer
         if (insert_item(item)) {
-            fprintf(stderr, "ERROR\n");
+            fprintf(stderr, "ERROR: Could not add item to buffer\n");
         }
         else {
             printf("producer produced %d\n", item);
@@ -105,10 +140,11 @@ void *consumer (void *arguments) {
     
     while (1) {
         
-        // Random sleepTime from 1 to 9
-        int sleepTime = rand() % 10;
+        // Random sleepTime from 1 to (BUFFER_SIZE - 1)
+        int sleepTime = (rand() % BUFFER_SIZE - 1) + 1;
         sleep(sleepTime);
         
+        // Try to remove item from buffer
         if(remove_item(&item))
             fprintf(stderr, "ERROR\n");
         else {
@@ -117,7 +153,6 @@ void *consumer (void *arguments) {
         
     }
 }
-
 
 int main(int argc, const char * argv[]) {
     
@@ -152,4 +187,5 @@ int main(int argc, const char * argv[]) {
     // Sleep for certain amount of time specified by user then exit
     sleep(sleepTime);
     exit(0);
+   
 }
